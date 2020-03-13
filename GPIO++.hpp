@@ -1,0 +1,269 @@
+/*
+    This file is part of GPIO++.
+    Copyright (C) 2020 ReimuNotMoe
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+#pragma once
+
+#include <vector>
+#include <string>
+#include <initializer_list>
+#include <unordered_map>
+#include <functional>
+#include <stdexcept>
+#include <system_error>
+
+#include <cstring>
+#include <cinttypes>
+
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/gpio.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+
+#include "Utils.hpp"
+
+namespace YukiWorkshop::GPIO {
+	class Device;
+	class Line;
+
+	enum class LineMode : int {
+		Input = GPIOHANDLE_REQUEST_INPUT,
+		Output = GPIOHANDLE_REQUEST_OUTPUT,
+		ActiveLow = GPIOHANDLE_REQUEST_ACTIVE_LOW,
+		OpenDrain = GPIOHANDLE_REQUEST_OPEN_DRAIN,
+		OpenSource = GPIOHANDLE_REQUEST_OPEN_SOURCE
+	};
+
+	enum class EventMode : int {
+		RisingEdge = GPIOEVENT_REQUEST_RISING_EDGE,
+		FallingEdge = GPIOEVENT_REQUEST_FALLING_EDGE,
+		Both = RisingEdge | FallingEdge
+	};
+
+	enum class EventType : int {
+		RisingEdge = GPIOEVENT_EVENT_RISING_EDGE,
+		FallingEdge = GPIOEVENT_EVENT_FALLING_EDGE,
+		Both = RisingEdge | FallingEdge
+	};
+
+	inline constexpr LineMode operator&(LineMode x, LineMode y) {
+		return static_cast<LineMode>(static_cast<int>(x) & static_cast<int>(y));
+	}
+
+	inline constexpr LineMode operator|(LineMode x, LineMode y) {
+		return static_cast<LineMode>(static_cast<int>(x) | static_cast<int>(y));
+	}
+
+	inline constexpr LineMode operator^(LineMode x, LineMode y) {
+		return static_cast<LineMode>(static_cast<int>(x) ^ static_cast<int>(y));
+	}
+
+	inline constexpr LineMode operator~(LineMode x) {
+		return static_cast<LineMode>(~static_cast<int>(x));
+	}
+
+	inline LineMode & operator&=(LineMode & x, LineMode y) {
+		x = x & y;
+		return x;
+	}
+
+	inline LineMode & operator|=(LineMode & x, LineMode y) {
+		x = x | y;
+		return x;
+	}
+
+	inline LineMode & operator^=(LineMode & x, LineMode y) {
+		x = x ^ y;
+		return x;
+	}
+
+	inline constexpr EventMode operator&(EventMode x, EventMode y) {
+		return static_cast<EventMode>(static_cast<int>(x) & static_cast<int>(y));
+	}
+
+	inline constexpr EventMode operator|(EventMode x, EventMode y) {
+		return static_cast<EventMode>(static_cast<int>(x) | static_cast<int>(y));
+	}
+
+	inline constexpr EventMode operator^(EventMode x, EventMode y) {
+		return static_cast<EventMode>(static_cast<int>(x) ^ static_cast<int>(y));
+	}
+
+	inline constexpr EventMode operator~(EventMode x) {
+		return static_cast<EventMode>(~static_cast<int>(x));
+	}
+
+	inline EventMode & operator&=(EventMode & x, EventMode y) {
+		x = x & y;
+		return x;
+	}
+
+	inline EventMode & operator|=(EventMode & x, EventMode y) {
+		x = x | y;
+		return x;
+	}
+
+	inline EventMode & operator^=(EventMode & x, EventMode y) {
+		x = x ^ y;
+		return x;
+	}
+
+	inline constexpr EventType operator&(EventType x, EventType y) {
+		return static_cast<EventType>(static_cast<int>(x) & static_cast<int>(y));
+	}
+
+	inline constexpr EventType operator|(EventType x, EventType y) {
+		return static_cast<EventType>(static_cast<int>(x) | static_cast<int>(y));
+	}
+
+	inline constexpr EventType operator^(EventType x, EventType y) {
+		return static_cast<EventType>(static_cast<int>(x) ^ static_cast<int>(y));
+	}
+
+	inline constexpr EventType operator~(EventType x) {
+		return static_cast<EventType>(~static_cast<int>(x));
+	}
+
+	inline EventType & operator&=(EventType & x, EventType y) {
+		x = x & y;
+		return x;
+	}
+
+	inline EventType & operator|=(EventType & x, EventType y) {
+		x = x | y;
+		return x;
+	}
+
+	inline EventType & operator^=(EventType & x, EventType y) {
+		x = x ^ y;
+		return x;
+	}
+
+	struct LineSpec {
+		uint32_t line_number;
+		uint8_t default_value;
+	};
+
+	class Line {
+	protected:
+		int fd = -1;
+		uint8_t size = 0;
+	public:
+		Line(int __fd, size_t __size) : fd(__fd), size(__size) {}
+
+		virtual ~Line() {
+			close(fd);
+		}
+	};
+
+	class LineSingle : public Line {
+	public:
+		LineSingle(int __fd, size_t __size) : Line(__fd, __size) {}
+
+		LineSingle(const LineSingle& other) = delete;
+		LineSingle& operator=(const LineSingle& other) = delete;
+
+		uint8_t read();
+		void write(uint8_t __value);
+	};
+
+	class LineMultiple : public Line {
+	public:
+		LineMultiple(int __fd, size_t __size) : Line(__fd, __size) {}
+
+		LineMultiple(const LineMultiple& other) = delete;
+		LineMultiple& operator=(const LineMultiple& other) = delete;
+
+		std::vector<uint8_t> read();
+		void write(const std::vector<uint8_t>& __values);
+	};
+
+	class Device {
+	private:
+		int fd = -1;
+		int epfd = -1;
+		bool eventlistener_run = false;
+
+		std::string path_;
+		std::string name_, label_;
+		uint32_t lines_ = 0;
+
+		std::unordered_map<int, std::function<void(EventType, uint64_t)>> events_map;
+
+		void get_device_info();
+
+	public:
+		Device() = default;
+
+		explicit Device(uint32_t __id) {
+			open(__id);
+		}
+
+		explicit Device(const std::string& __path) {
+			open(__path);
+		}
+
+		~Device() {
+			if (fd > 0)
+				close(fd);
+			if (epfd > 0)
+				close(epfd);
+		}
+
+		Device& operator=(const Device& other) {
+			open(other.path_);
+			return *this;
+		}
+
+		Device(const Device& other) {
+			open(other.path_);
+		}
+
+		const std::string& name() const noexcept {
+			return name_;
+		}
+
+		const std::string& label() const noexcept {
+			return label_;
+		}
+
+		uint32_t lines() const noexcept {
+			return lines_;
+		}
+
+		const std::string& path() const noexcept {
+			return path_;
+		}
+
+		void open(const std::string& __path);
+		void open(uint32_t __id);
+
+		LineSingle line(uint32_t __line_number, LineMode __mode, uint8_t __default_value = 0, const std::string& __label = "");
+		LineMultiple line(const std::initializer_list<LineSpec>& __lss, LineMode __mode, const std::string& __label = "");
+
+		int on_event(uint32_t __line_number, LineMode __line_mode, EventMode __event_mode,
+			     const std::function<void(EventType, uint64_t)>& __handler, const std::string& __label = "");
+		void cancel_event(int __event_handle);
+		void run_eventlistener();
+		void stop_eventlistener();
+	};
+
+	extern std::vector<Device> all_devices();
+	extern GPIO::Device find_device_by_label(const std::string& __label);
+	extern GPIO::Device find_device_by_name(const std::string& __name);
+}
