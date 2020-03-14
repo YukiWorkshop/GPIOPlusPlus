@@ -17,6 +17,8 @@
 */
 
 #include <iostream>
+#include <thread>
+
 #include "GPIO++.hpp"
 
 using namespace YukiWorkshop;
@@ -57,6 +59,20 @@ int main() {
 
 		auto line1 = d.line(1, GPIO::LineMode::Output);
 		line1.write(1);
+
+		d.on_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
+			   [](GPIO::EventType evtype, uint64_t evtime){
+				   std::cout << "Hey man, somebody is in front of your door.\n";
+			   }
+		);
+
+		std::thread t([&](){
+			d.run_eventlistener();
+		});
+
+		d.stop_eventlistener();
+		t.join();
+
 	} catch (...) {
 
 	}

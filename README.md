@@ -1,6 +1,12 @@
 # GPIO++
 Easy-to-use C++ library for the new Linux GPIO API.
 
+## Features
+- OOP design
+- Elegant event handling
+- Finds your desired pin by name
+- Doesn't look like Arduino APIs :P
+
 ## Requirements
 - Linux kernel 4.8+
 
@@ -29,38 +35,39 @@ target_link_libraries(your_project GPIOPlusPlus)
 using namespace YukiWorkshop;
 ```
 
+Get all available devices:
+
+```cpp
+std::vector<GPIO::Device> devs = GPIO::all_devices();
+```
+
+All operations should be surrounded by `try` and `catch`.
+The exception type is `std::system_error` unless otherwise specified.
+
 Open a device by number:
 ```cpp
 try {
     auto d = GPIO::Device(0);
 } catch (std::system_error& e) {
     // Error handling here
+    std::cerr << "Oops! " << e.what() << "\n";
 }
 ```
 
 ...or by path:
 ```cpp
-try {
-    auto d = GPIO::Device("/dev/gpiochip0");
-} catch (std::system_error& e) {
-    // Error handling here
-}
+auto d = GPIO::Device("/dev/gpiochip0");
 ```
 
 ...or by label:
 ```cpp
 try {
     auto d = GPIO::find_device_by_label("pinctrl-bcm2835");
-} catch (...) {
-    // No device with this name
+} catch (std::logic_error &e) {
+    // No device with this label
 }
 ```
 
-Get all available devices:
-
-```cpp
-std::vector<GPIO::Device> devs = GPIO::all_devices();
-```
 
 Basic line operations:
 ```cpp
@@ -71,9 +78,33 @@ auto line1 = d.line(1, GPIO::LineMode::Output);
 line1.write(1);
 ```
 
+Get a line by its name (won't work if it doesn't have one):
+```cpp
+auto line0 = d.line(d.lines_by_name["SDA1"], GPIO::LineMode::Input);
+```
+
+Events handling:
+```cpp
+d.on_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
+       [](GPIO::EventType evtype, uint64_t evtime){
+           std::cout << "Hey man, somebody is in front of your door.\n";
+       }
+);
+
+std::thread t([&](){
+    d.run_eventlistener();
+});
+```
+
+And stop them:
+```cpp
+d.stop_eventlistener();
+t.join();
+```
+
 TBD
 
-No more `digitalWrite`s!!
+No more `digitalWrite`s!! Hurray!!!
 
 ## License
 LGPLv3
