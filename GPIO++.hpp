@@ -165,6 +165,8 @@ namespace YukiWorkshop::GPIO {
 		int fd = -1;
 		uint8_t size = 0;
 	public:
+		Line() = default;
+
 		Line(int __fd, size_t __size) : fd(__fd), size(__size) {}
 
 		virtual ~Line() {
@@ -185,8 +187,23 @@ namespace YukiWorkshop::GPIO {
 			label_ = __info.consumer;
 		}
 
-		LineSingle(const LineSingle& other) = delete;
-		LineSingle& operator=(const LineSingle& other) = delete;
+		LineSingle(const LineSingle& other) {
+			fd = dup(other.fd);
+			size = other.size;
+			pfd = other.pfd;
+			name_ = other.name_;
+			label_ = other.label_;
+		}
+
+		LineSingle& operator=(const LineSingle& other) {
+			fd = dup(other.fd);
+			size = other.size;
+			pfd = other.pfd;
+			name_ = other.name_;
+			label_ = other.label_;
+
+			return *this;
+		}
 
 		const std::string& name() const noexcept {
 			return name_;
@@ -212,8 +229,17 @@ namespace YukiWorkshop::GPIO {
 	public:
 		LineMultiple(int __fd, size_t __size) : Line(__fd, __size) {}
 
-		LineMultiple(const LineMultiple& other) = delete;
-		LineMultiple& operator=(const LineMultiple& other) = delete;
+		LineMultiple(const LineMultiple& other) {
+			fd = dup(other.fd);
+			size = other.size;
+		}
+
+		LineMultiple& operator=(const LineMultiple& other) {
+			fd = dup(other.fd);
+			size = other.size;
+
+			return *this;
+		}
 
 		std::vector<uint8_t> read();
 		void write(const std::vector<uint8_t>& __values);
