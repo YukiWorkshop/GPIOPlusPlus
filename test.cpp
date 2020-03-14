@@ -24,6 +24,7 @@
 using namespace YukiWorkshop;
 
 int main() {
+	// List all devices and their lines
 	auto devs = GPIO::all_devices();
 
 	for (size_t i=0; i<devs.size(); i++) {
@@ -35,6 +36,7 @@ int main() {
 		}
 	}
 
+	// Some random device in my laptop
 	try {
 		GPIO::Device d = GPIO::find_device_by_label("INT3450:00");
 		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
@@ -49,26 +51,24 @@ int main() {
 
 	}
 
+	// A raspberry pi + body sensor example
 	try {
-		GPIO::Device d = GPIO::find_device_by_label("INT3450:00");
-		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
+		GPIO::Device d = GPIO::find_device_by_label("pinctrl-bcm2835");
+		std::cout << "Device: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
 			  << "\n";
 
-		auto line0 = d.line(d.lines_by_name()[""], GPIO::LineMode::Input);
-		printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
-
-		auto line1 = d.line(1, GPIO::LineMode::Output);
-		line1.write(1);
-
-		d.on_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
+		d.on_event(21, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
 			   [](GPIO::EventType evtype, uint64_t evtime){
-				   std::cout << "Hey man, somebody is in front of your door.\n";
+				   if (evtype == GPIO::EventType::RisingEdge)
+					   std::cout << "Hey man, somebody is in front of your door at " << evtime << "\n";
 			   }
 		);
 
 		std::thread t([&](){
 			d.run_eventlistener();
 		});
+
+		sleep(60);
 
 		d.stop_eventlistener();
 		t.join();

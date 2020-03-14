@@ -3,7 +3,7 @@ project(GPIOPlusPlus)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_library(GPIOPlusPlus test.cpp GPIO++.cpp GPIO++.hpp Utils.cpp Utils.hpp)
+add_library(GPIOPlusPlus GPIO++.cpp GPIO++.hpp Utils.cpp Utils.hpp)
 
 add_executable(GPIOPlusPlus_Test test.cpp)
-target_link_libraries(GPIOPlusPlus_Test GPIOPlusPlus)
+target_link_libraries(GPIOPlusPlus_Test GPIOPlusPlus pthread)

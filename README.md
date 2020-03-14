@@ -8,7 +8,7 @@ Easy-to-use C++ library for the new Linux GPIO API.
 - Doesn't look like Arduino APIs :P
 
 ## Requirements
-- Linux kernel 4.8+
+- Linux kernel 4.8+ with new GPIO API & epoll
 
 And reasonably new versions of:
 -  C++17 compatible compiler
@@ -25,7 +25,7 @@ git submodule add https://github.com/YukiWorkshop/GPIOPlusPlus
 ```cmake
 add_subdirectory(cpp_modules/GPIOPlusPlus)
 include_directories(cpp_modules/GPIOPlusPlus)
-target_link_libraries(your_project GPIOPlusPlus)
+target_link_libraries(your_project GPIOPlusPlus pthread)
 ```
 
 ## Usage
@@ -68,7 +68,6 @@ try {
 }
 ```
 
-
 Basic line operations:
 ```cpp
 auto line0 = d.line(0, GPIO::LineMode::Input);
@@ -78,7 +77,7 @@ auto line1 = d.line(1, GPIO::LineMode::Output);
 line1.write(1);
 ```
 
-Get a line by its name (won't work if it doesn't have one):
+Get a line by its name (won't work if it doesn't have one in device tree):
 ```cpp
 auto line0 = d.line(d.lines_by_name["SDA1"], GPIO::LineMode::Input);
 ```
@@ -87,7 +86,7 @@ Events handling:
 ```cpp
 d.on_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
        [](GPIO::EventType evtype, uint64_t evtime){
-           std::cout << "Hey man, somebody is in front of your door.\n";
+           std::cout << "Hey man, your pin is HIGH at " << evtime << "\n";
        }
 );
 
@@ -102,9 +101,10 @@ d.stop_eventlistener();
 t.join();
 ```
 
-TBD
-
 No more `digitalWrite`s!! Hurray!!!
+
+## Documentation
+TBD
 
 ## License
 LGPLv3

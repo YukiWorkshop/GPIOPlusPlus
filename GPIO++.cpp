@@ -165,11 +165,12 @@ int GPIO::Device::on_event(uint32_t __line_number, GPIO::LineMode __line_mode, G
 	req.eventflags = (uint32_t)__event_mode;
 	strncpy(req.consumer_label, __label.c_str(), 31);
 
-	if (!ioctl(fd, GPIO_GET_LINEEVENT_IOCTL, &req)) {
+	if (ioctl(fd, GPIO_GET_LINEEVENT_IOCTL, &req)) {
 		throw ExceptionWithErrno("failed to setup events");
 	}
 
 	events_map.insert({req.fd, __handler});
+
 	if (epfd > 0) {
 		epoll_event ev;
 		ev.events = EPOLLIN;
@@ -211,7 +212,7 @@ void GPIO::Device::run_eventlistener() {
 
 				gpioevent_data event;
 				auto it = events_map.find(cur_fd);
-				if (it != events_map.end() ||
+				if (it != events_map.end() &&
 				    read(cur_fd, &event, sizeof(gpioevent_data)) == sizeof(gpioevent_data))
 					events_map[cur_fd]((EventType)event.id, event.timestamp);
 
