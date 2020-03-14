@@ -52,7 +52,7 @@ GPIO::Device GPIO::find_device_by_label(const std::string& __label) {
 
 	for (auto &it : devs) {
 		if (it.label() == __label)
-			return devs[0];
+			return it;
 	}
 
 	throw std::logic_error("no device with this label");
@@ -67,7 +67,39 @@ void GPIO::Device::get_device_info() {
 
 	name_ = cinfo.name;
 	label_ = cinfo.label;
-	lines_ = cinfo.lines;
+	num_lines_ = cinfo.lines;
+}
+
+std::map<uint32_t, std::string> &GPIO::Device::lines_by_num() {
+	if (lines_by_num_.empty()) {
+		for (uint32_t i=0; i<num_lines_; i++) {
+			gpioline_info linfo{};
+			linfo.line_offset = i;
+
+			if (ioctl(fd, GPIO_GET_LINEINFO_IOCTL, &linfo))
+				throw ExceptionWithErrno("failed to get line info");
+
+			lines_by_num_.insert({i, linfo.name});
+		}
+	}
+
+	return lines_by_num_;
+}
+
+std::map<std::string, uint32_t> &GPIO::Device::lines_by_name() {
+	if (lines_by_name_.empty()) {
+		for (uint32_t i=0; i<num_lines_; i++) {
+			gpioline_info linfo{};
+			linfo.line_offset = i;
+
+			if (ioctl(fd, GPIO_GET_LINEINFO_IOCTL, &linfo))
+				throw ExceptionWithErrno("failed to get line info");
+
+			lines_by_name_.insert({linfo.name, i});
+		}
+	}
+
+	return lines_by_name_;
 }
 
 void GPIO::Device::open(const std::string &__path) {
@@ -95,7 +127,13 @@ GPIO::Device::line(uint32_t __line_number, GPIO::LineMode __mode, uint8_t __defa
 	if (ioctl(fd, GPIO_GET_LINEHANDLE_IOCTL, &req))
 		throw ExceptionWithErrno("failed to get line handle");
 
-	return LineSingle(req.fd, 1);
+	gpioline_info linfo{};
+	linfo.line_offset = __line_number;
+
+	if (ioctl(fd, GPIO_GET_LINEINFO_IOCTL, &linfo))
+		throw ExceptionWithErrno("failed to get line info");
+
+	return LineSingle(req.fd, fd, 1, linfo);
 }
 
 GPIO::LineMultiple
@@ -193,6 +231,8 @@ void GPIO::Device::stop_eventlistener() {
 	eventlistener_run = false;
 }
 
+
+
 uint8_t GPIO::LineSingle::read() {
 	gpiohandle_data data{};
 
@@ -208,6 +248,32 @@ void GPIO::LineSingle::write(uint8_t __value) {
 
 	if (ioctl(fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data))
 		throw ExceptionWithErrno("failed to write value to line");
+}
+
+GPIO::LineMode GPIO::LineSingle::mode() const {
+	gpioline_info linfo{};
+	linfo.line_offset = offset_;
+
+	if (ioctl(pfd, GPIO_GET_LINEINFO_IOCTL, &linfo))
+		throw ExceptionWithErrno("failed to get line info");
+
+	return (LineMode)linfo.flags;
+}
+
+void GPIO::LineSingle::set_mode(GPIO::LineMode __mode, uint8_t __default_value, const std::string &__label) {
+	gpiohandle_request req{};
+
+	req.lineoffsets[0] = offset_;
+	req.default_values[0] = __default_value;
+	req.flags = (uint32_t)__mode;
+	strncpy(req.consumer_label, __label.c_str(), 31);
+	req.lines = 1;
+
+	if (ioctl(pfd, GPIO_GET_LINEHANDLE_IOCTL, &req))
+		throw ExceptionWithErrno("failed to get line handle");
+
+	close(fd);
+	fd = req.fd;
 }
 
 std::vector<uint8_t> GPIO::LineMultiple::read() {

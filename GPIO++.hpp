@@ -22,6 +22,7 @@
 #include <string>
 #include <initializer_list>
 #include <unordered_map>
+#include <map>
 #include <functional>
 #include <stdexcept>
 #include <system_error>
@@ -172,11 +173,36 @@ namespace YukiWorkshop::GPIO {
 	};
 
 	class LineSingle : public Line {
+	private:
+		int pfd = -1;
+		uint32_t offset_ = 0;
+		std::string name_, label_;
 	public:
-		LineSingle(int __fd, size_t __size) : Line(__fd, __size) {}
+		LineSingle(int __fd, int __pfd, size_t __size, const gpioline_info& __info) : Line(__fd, __size) {
+			pfd = __pfd;
+			offset_ = __info.line_offset;
+			name_ = __info.name;
+			label_ = __info.consumer;
+		}
 
 		LineSingle(const LineSingle& other) = delete;
 		LineSingle& operator=(const LineSingle& other) = delete;
+
+		const std::string& name() const noexcept {
+			return name_;
+		}
+
+		const std::string& label() const noexcept {
+			return label_;
+		}
+
+		uint32_t offset() const noexcept {
+			return offset_;
+		}
+
+		LineMode mode() const;
+
+		void set_mode(LineMode __mode, uint8_t __default_value = 0, const std::string& __label = "");
 
 		uint8_t read();
 		void write(uint8_t __value);
@@ -201,7 +227,10 @@ namespace YukiWorkshop::GPIO {
 
 		std::string path_;
 		std::string name_, label_;
-		uint32_t lines_ = 0;
+		uint32_t num_lines_ = 0;
+
+		std::map<uint32_t, std::string> lines_by_num_;
+		std::map<std::string, uint32_t> lines_by_name_;
 
 		std::unordered_map<int, std::function<void(EventType, uint64_t)>> events_map;
 
@@ -242,13 +271,16 @@ namespace YukiWorkshop::GPIO {
 			return label_;
 		}
 
-		uint32_t lines() const noexcept {
-			return lines_;
-		}
-
 		const std::string& path() const noexcept {
 			return path_;
 		}
+
+		uint32_t num_lines() const noexcept {
+			return num_lines_;
+		}
+
+		std::map<uint32_t, std::string>& lines_by_num();
+		std::map<std::string, uint32_t>& lines_by_name();
 
 		void open(const std::string& __path);
 		void open(uint32_t __id);

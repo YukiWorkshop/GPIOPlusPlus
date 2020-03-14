@@ -26,16 +26,34 @@ int main() {
 
 	for (size_t i=0; i<devs.size(); i++) {
 		auto &d = devs[i];
-		std::cout << "Device " << i << ": name: " << d.name() << " label: " << d.label() << " lines: " << d.lines() << "\n";
+		std::cout << "Device " << i << ": name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines() << "\n";
+
+		for (auto &it : d.lines_by_num()) {
+			std::cout << "Line " << it.first << ": name: " << it.second <<  "\n";
+		}
 	}
 
 	try {
 		GPIO::Device d = GPIO::find_device_by_label("INT3450:00");
-		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.lines()
+		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
 			  << "\n";
 
-		auto line0 = d.line(1, GPIO::LineMode::Input);
-		printf("Line 1: %s\n", line0.read() ? "HIGH" : "LOW");
+		auto line0 = d.line(0, GPIO::LineMode::Input);
+		printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
+
+		auto line1 = d.line(1, GPIO::LineMode::Output);
+		line1.write(1);
+	} catch (...) {
+
+	}
+
+	try {
+		GPIO::Device d = GPIO::find_device_by_label("INT3450:00");
+		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
+			  << "\n";
+
+		auto line0 = d.line(d.lines_by_name()[""], GPIO::LineMode::Input);
+		printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
 
 		auto line1 = d.line(1, GPIO::LineMode::Output);
 		line1.write(1);
