@@ -1,4 +1,6 @@
 # GPIO++
+[![pipeline status](https://gitlab.com/ReimuNotMoe/GPIOPlusPlus/badges/master/pipeline.svg)](https://gitlab.com/ReimuNotMoe/GPIOPlusPlus/-/commits/master)
+
 Easy-to-use C++ library for the new Linux GPIO API.
 
 ## Features
