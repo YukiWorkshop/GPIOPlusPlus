@@ -7,6 +7,7 @@ Easy-to-use C++ library for the new Linux GPIO API.
 -  OOP design
 -  Elegant event handling
 -  Finds your desired pin by name
+-  Not limited to a specific device
 -  Doesn't look like Arduino APIs :P
 
 ## Requirements
@@ -107,6 +108,12 @@ t.join();
 ```
 
 No more `digitalWrite`s!! Hurray!!!
+
+## FAQ
+#### No pull-up or pull-down?
+Currently the standard kernel interface doesn't support them.
+
+See [this discussion](https://patchwork.ozlabs.org/patch/1165565/) for more details.
 
 ## Documentation
 TBD
