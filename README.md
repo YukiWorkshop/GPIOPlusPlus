@@ -4,30 +4,29 @@
 Easy-to-use C++ library for the new Linux GPIO API.
 
 ## Features
-- OOP design
-- Elegant event handling
-- Finds your desired pin by name
-- Doesn't look like Arduino APIs :P
+-  OOP design
+-  Elegant event handling
+-  Finds your desired pin by name
+-  Doesn't look like Arduino APIs :P
 
 ## Requirements
-- Linux kernel 4.8+ with new GPIO API & epoll
+-  Linux kernel 4.8+ with new GPIO API & epoll
 
 And reasonably new versions of:
 -  C++17 compatible compiler
 -  CMake
 
 ## Install
-Use of Git submodule and CMake subdirectory is recommended.
-
-```shell script
-mkdir cpp_modules && cd cpp_modules
-git submodule add https://github.com/YukiWorkshop/GPIOPlusPlus
-```
+Use of the [CPM](https://github.com/TheLartians/CPM.cmake) package manager is recommended.
 
 ```cmake
-add_subdirectory(cpp_modules/GPIOPlusPlus)
-include_directories(cpp_modules/GPIOPlusPlus)
-target_link_libraries(your_project GPIOPlusPlus pthread)
+include(cmake/CPM.cmake)
+
+CPMAddPackage(
+        NAME GPIOPlusPlus
+        GITHUB_REPOSITORY YukiWorkshop/GPIOPlusPlus
+        VERSION 0.0.1
+)
 ```
 
 ## Usage
