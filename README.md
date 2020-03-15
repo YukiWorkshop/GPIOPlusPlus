@@ -11,6 +11,7 @@ Easy-to-use C++ library for the new Linux GPIO API.
 
 ## Requirements
 -  Linux kernel 4.8+ with new GPIO API & epoll
+-  pthread
 
 And reasonably new versions of:
 -  C++17 compatible compiler
@@ -27,6 +28,9 @@ CPMAddPackage(
         GITHUB_REPOSITORY YukiWorkshop/GPIOPlusPlus
         VERSION 0.0.1
 )
+
+target_include_directories(your_project PUBLIC ${GPIOPlusPlus_SOURCE_DIR})
+target_link_libraries(your_project GPIOPlusPlus pthread)
 ```
 
 ## Usage
