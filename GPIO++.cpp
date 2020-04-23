@@ -282,6 +282,8 @@ GPIO::LineMode GPIO::LineSingle::mode() const {
 }
 
 void GPIO::LineSingle::set_mode(GPIO::LineMode __mode, uint8_t __default_value, const std::string &__label) {
+	close(fd);
+
 	gpiohandle_request req{};
 
 	req.lineoffsets[0] = offset_;
@@ -297,7 +299,6 @@ void GPIO::LineSingle::set_mode(GPIO::LineMode __mode, uint8_t __default_value, 
 		std::cerr << "GPIO++: " << "Line " << number() << ": mode changed, mode="
 			  << (uint)__mode << ", default_value=" << __default_value << ", label=" << __label << "\n";
 
-	close(fd);
 	fd = req.fd;
 }
 
