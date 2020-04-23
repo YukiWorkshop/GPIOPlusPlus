@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 #include <initializer_list>
 #include <unordered_map>
 #include <map>
@@ -205,6 +206,8 @@ namespace YukiWorkshop::GPIO {
 			return *this;
 		}
 
+		bool debug = false;
+
 		const std::string& name() const noexcept {
 			return name_;
 		}
@@ -213,7 +216,7 @@ namespace YukiWorkshop::GPIO {
 			return label_;
 		}
 
-		uint32_t offset() const noexcept {
+		uint32_t number() const noexcept {
 			return offset_;
 		}
 
@@ -264,6 +267,8 @@ namespace YukiWorkshop::GPIO {
 
 	public:
 		Device() = default;
+
+		bool debug = false;
 
 		explicit Device(uint32_t __id) {
 			open(__id);

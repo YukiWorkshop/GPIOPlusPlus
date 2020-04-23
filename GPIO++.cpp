@@ -108,6 +108,9 @@ void GPIO::Device::open(const std::string &__path) {
 
 	get_device_info();
 	path_ = __path;
+
+	if (debug)
+		std::cerr << "GPIO++: " << "Device " << __path << " opened";
 }
 
 void GPIO::Device::open(uint32_t __id) {
@@ -133,6 +136,10 @@ GPIO::Device::line(uint32_t __line_number, GPIO::LineMode __mode, uint8_t __defa
 	if (ioctl(fd, GPIO_GET_LINEINFO_IOCTL, &linfo))
 		throw ExceptionWithErrno("failed to get line info");
 
+	if (debug)
+		std::cerr << "GPIO++: " << "Line " << __line_number << " opened, mode="
+			  << (uint)__mode << ", default_value=" << __default_value << ", label=" << __label << "\n";
+
 	return LineSingle(req.fd, fd, 1, linfo);
 }
 
@@ -153,6 +160,13 @@ GPIO::Device::line(const std::initializer_list<LineSpec> &__lss, GPIO::LineMode 
 
 	if (ioctl(fd, GPIO_GET_LINEHANDLE_IOCTL, &req))
 		throw ExceptionWithErrno("failed to get line handle");
+
+	if (debug)
+		for (uint8_t i=0; i<usable_size; i++) {
+			std::cerr << "GPIO++: " << "Line(M) " << (__lss.begin()+i)->line_number << " opened, mode="
+				  << (uint)__mode << ", default_value=" << (__lss.begin()+i)->default_value << "\n";
+		}
+
 
 	return LineMultiple(req.fd, usable_size);
 }
@@ -240,6 +254,9 @@ uint8_t GPIO::LineSingle::read() {
 	if (ioctl(fd, GPIOHANDLE_GET_LINE_VALUES_IOCTL, &data))
 		throw ExceptionWithErrno("failed to read value from line");
 
+	if (debug)
+			std::cerr << "GPIO++: " << "Line " << number() << " '" << label() << "': value read: " << +data.values[0] << "\n";
+
 	return data.values[0];
 }
 
@@ -249,6 +266,9 @@ void GPIO::LineSingle::write(uint8_t __value) {
 
 	if (ioctl(fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data))
 		throw ExceptionWithErrno("failed to write value to line");
+
+	if (debug)
+		std::cerr << "GPIO++: " << "Line " << number() << " '" << label() << "': value write: " << +data.values[0] << "\n";
 }
 
 GPIO::LineMode GPIO::LineSingle::mode() const {
@@ -272,6 +292,10 @@ void GPIO::LineSingle::set_mode(GPIO::LineMode __mode, uint8_t __default_value, 
 
 	if (ioctl(pfd, GPIO_GET_LINEHANDLE_IOCTL, &req))
 		throw ExceptionWithErrno("failed to get line handle");
+
+	if (debug)
+		std::cerr << "GPIO++: " << "Line " << number() << ": mode changed, mode="
+			  << (uint)__mode << ", default_value=" << __default_value << ", label=" << __label << "\n";
 
 	close(fd);
 	fd = req.fd;

@@ -43,9 +43,11 @@ int main() {
 			  << "\n";
 
 		auto line0 = d.line(0, GPIO::LineMode::Input);
+		line0.debug = true;
 		printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
 
 		auto line1 = d.line(1, GPIO::LineMode::Output);
+		line1.debug = true;
 		line1.write(1);
 	} catch (...) {
 
