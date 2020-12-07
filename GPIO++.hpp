@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/gpio.h>
+#include <linux/types.h>
+#include <linux/version.h>
 #include <sys/epoll.h>
 #include <sys/ioctl.h>
 
@@ -48,7 +50,16 @@ namespace YukiWorkshop::GPIO {
 		Output = GPIOHANDLE_REQUEST_OUTPUT,
 		ActiveLow = GPIOHANDLE_REQUEST_ACTIVE_LOW,
 		OpenDrain = GPIOHANDLE_REQUEST_OPEN_DRAIN,
-		OpenSource = GPIOHANDLE_REQUEST_OPEN_SOURCE
+		OpenSource = GPIOHANDLE_REQUEST_OPEN_SOURCE,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0)
+		NoPull = GPIOHANDLE_REQUEST_BIAS_DISABLE,
+		PullUp = GPIOHANDLE_REQUEST_BIAS_PULL_UP,
+		PullDown = GPIOHANDLE_REQUEST_BIAS_PULL_DOWN,
+#else
+		NoPull = 0,
+		PullUp = 0,
+		PullDown = 0,
+#endif
 	};
 
 	enum class EventMode : int {
@@ -181,6 +192,8 @@ namespace YukiWorkshop::GPIO {
 		uint32_t offset_ = 0;
 		std::string name_, label_;
 	public:
+		LineSingle() = default;
+
 		LineSingle(int __fd, int __pfd, size_t __size, const gpioline_info& __info) : Line(__fd, __size) {
 			pfd = __pfd;
 			offset_ = __info.line_offset;
@@ -230,6 +243,8 @@ namespace YukiWorkshop::GPIO {
 
 	class LineMultiple : public Line {
 	public:
+		LineMultiple() = default;
+
 		LineMultiple(int __fd, size_t __size) : Line(__fd, __size) {}
 
 		LineMultiple(const LineMultiple& other) {

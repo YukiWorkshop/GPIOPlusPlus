@@ -42,7 +42,7 @@ int main() {
 		std::cout << "Device 0: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
 			  << "\n";
 
-		auto line0 = d.line(0, GPIO::LineMode::Input);
+		auto line0 = d.line(0, GPIO::LineMode::Input | GPIO::LineMode::PullUp);
 		line0.debug = true;
 		printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
 

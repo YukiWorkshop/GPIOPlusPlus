@@ -121,6 +121,12 @@ GPIO::LineSingle
 GPIO::Device::line(uint32_t __line_number, GPIO::LineMode __mode, uint8_t __default_value, const std::string &__label) {
 	gpiohandle_request req{};
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0)
+	if (!((__mode & LineMode::PullUp) == LineMode::PullUp || (__mode & LineMode::PullDown) == LineMode::PullDown)) {
+		__mode |= LineMode::NoPull;
+	}
+#endif
+
 	req.lineoffsets[0] = __line_number;
 	req.default_values[0] = __default_value;
 	req.flags = (uint32_t)__mode;
@@ -153,6 +159,12 @@ GPIO::Device::line(const std::initializer_list<LineSpec> &__lss, GPIO::LineMode 
 		req.lineoffsets[i] = (__lss.begin()+i)->line_number;
 		req.default_values[i] = (__lss.begin()+i)->default_value;
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0)
+	if (!((__mode & LineMode::PullUp) == LineMode::PullUp || (__mode & LineMode::PullDown) == LineMode::PullDown)) {
+		__mode |= LineMode::NoPull;
+	}
+#endif
 
 	strncpy(req.consumer_label, __label.c_str(), 31);
 	req.flags = (uint32_t)__mode;
@@ -285,6 +297,12 @@ void GPIO::LineSingle::set_mode(GPIO::LineMode __mode, uint8_t __default_value, 
 	close(fd);
 
 	gpiohandle_request req{};
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0)
+	if (!((__mode & LineMode::PullUp) == LineMode::PullUp || (__mode & LineMode::PullDown) == LineMode::PullDown)) {
+		__mode |= LineMode::NoPull;
+	}
+#endif
 
 	req.lineoffsets[0] = offset_;
 	req.default_values[0] = __default_value;

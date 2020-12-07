@@ -8,11 +8,12 @@ Easy-to-use C++ library for the new Linux GPIO API.
 -  Elegant event handling
 -  Finds your desired pin by name
 -  Not limited to a specific device
--  Doesn't look like Arduino APIs :P
+-  **Doesn't look like Arduino APIs** :P
 
 ## Requirements
 -  Linux kernel 4.8+ with new GPIO API & epoll
 -  pthread
+-  **To make pullup/pulldown actually working, you need Linux kernel 5.4+**
 
 And reasonably new versions of:
 -  C++17 compatible compiler
@@ -27,7 +28,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
         NAME GPIOPlusPlus
         GITHUB_REPOSITORY YukiWorkshop/GPIOPlusPlus
-        VERSION 0.0.1
+        VERSION 0.0.3
 )
 
 target_include_directories(your_project PUBLIC ${GPIOPlusPlus_SOURCE_DIR})
@@ -76,7 +77,7 @@ try {
 
 Basic line operations:
 ```cpp
-auto line0 = d.line(0, GPIO::LineMode::Input);
+auto line0 = d.line(0, GPIO::LineMode::Input | GPIO::LineMode::PullUp);
 printf("Line 0: %s\n", line0.read() ? "HIGH" : "LOW");
 
 auto line1 = d.line(1, GPIO::LineMode::Output);
@@ -108,12 +109,6 @@ t.join();
 ```
 
 No more `digitalWrite`s!! Hurray!!!
-
-## FAQ
-#### No pull-up or pull-down?
-Currently the standard kernel interface doesn't support them.
-
-See [this discussion](https://patchwork.ozlabs.org/patch/1165565/) for more details.
 
 ## Documentation
 TBD
