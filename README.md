@@ -28,7 +28,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
         NAME GPIOPlusPlus
         GITHUB_REPOSITORY YukiWorkshop/GPIOPlusPlus
-        VERSION 0.0.4
+        VERSION 0.0.5
 )
 
 target_include_directories(your_project PUBLIC ${GPIOPlusPlus_SOURCE_DIR})
