@@ -183,8 +183,10 @@ GPIO::Device::line(const std::initializer_list<LineSpec> &__lss, GPIO::LineMode 
 	return LineMultiple(req.fd, usable_size);
 }
 
-int GPIO::Device::on_event(uint32_t __line_number, GPIO::LineMode __line_mode, GPIO::EventMode __event_mode,
-			   const std::function<void(EventType, uint64_t)>& __handler, const std::string &__label) {
+int GPIO::Device::add_event(uint32_t __line_number, GPIO::LineMode __line_mode, GPIO::EventMode __event_mode,
+			    const std::function<void(EventType, uint64_t)>& __handler, const std::string &__label) {
+	std::unique_lock<std::shared_mutex> lk(event_lock);
+
 	gpioevent_request req{};
 	req.lineoffset = __line_number;
 	req.handleflags = (uint32_t)__line_mode;
@@ -208,11 +210,41 @@ int GPIO::Device::on_event(uint32_t __line_number, GPIO::LineMode __line_mode, G
 	return req.fd;
 }
 
-void GPIO::Device::cancel_event(int __event_handle) {
+void GPIO::Device::remove_event(int __event_handle) {
+	std::unique_lock<std::shared_mutex> lk(event_lock);
+
 	if (epfd > 0)
 		epoll_ctl(epfd, EPOLL_CTL_DEL, __event_handle, nullptr);
 
 	events_map.erase(__event_handle);
+}
+
+void GPIO::Device::process_event(int __event_handle) {
+	std::shared_lock<std::shared_mutex> lk(event_lock);
+
+	gpioevent_data event;
+	auto it = events_map.find(__event_handle);
+	if (it != events_map.end() &&
+	    read(__event_handle, &event, sizeof(gpioevent_data)) == sizeof(gpioevent_data))
+		events_map[__event_handle]((EventType)event.id, event.timestamp);
+	else
+		throw std::logic_error("event handle not found, check your code!");
+}
+
+std::vector<int> GPIO::Device::event_fds() {
+	std::shared_lock<std::shared_mutex> lk(event_lock);
+
+	std::vector<int> ret;
+	for (auto &it : events_map) {
+		ret.emplace_back(it.first);
+	}
+	return ret;
+}
+
+bool GPIO::Device::is_event_fd(int __fd) {
+	std::shared_lock<std::shared_mutex> lk(event_lock);
+
+	return events_map.find(__fd) != events_map.end();
 }
 
 void GPIO::Device::run_eventlistener() {
@@ -220,6 +252,7 @@ void GPIO::Device::run_eventlistener() {
 
 	epfd = epoll_create(42);
 
+	std::shared_lock<std::shared_mutex> lk(event_lock);
 	for (auto &it : events_map) {
 		epoll_event ev;
 		ev.events = EPOLLIN;
@@ -227,22 +260,15 @@ void GPIO::Device::run_eventlistener() {
 
 		epoll_ctl(epfd, EPOLL_CTL_ADD, it.first, &ev);
 	}
+	lk.unlock();
 
 	int ep_rc;
 	epoll_event evs[16];
 
 	while ((ep_rc = epoll_wait(epfd, evs, 16, 1000)) != -1) {
 		if (ep_rc > 0) {
-			for (uint i=0; i<ep_rc; i++) {
-				int cur_fd = evs[i].data.fd;
-
-				gpioevent_data event;
-				auto it = events_map.find(cur_fd);
-				if (it != events_map.end() &&
-				    read(cur_fd, &event, sizeof(gpioevent_data)) == sizeof(gpioevent_data))
-					events_map[cur_fd]((EventType)event.id, event.timestamp);
-
-			}
+			for (uint i=0; i<ep_rc; i++)
+				process_event(evs[i].data.fd);
 		}
 
 		if (!eventlistener_run) {
@@ -258,8 +284,6 @@ void GPIO::Device::stop_eventlistener() {
 	eventlistener_run = false;
 }
 
-
-
 uint8_t GPIO::LineSingle::read() {
 	gpiohandle_data data{};
 
@@ -267,7 +291,7 @@ uint8_t GPIO::LineSingle::read() {
 		throw ExceptionWithErrno("failed to read value from line");
 
 	if (debug)
-			std::cerr << "GPIO++: " << "Line " << number() << " '" << label() << "': value read: " << +data.values[0] << "\n";
+		std::cerr << "GPIO++: " << "Line " << number() << " '" << label() << "': value read: " << +data.values[0] << "\n";
 
 	return data.values[0];
 }

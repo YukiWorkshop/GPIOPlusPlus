@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <map>
 #include <functional>
+#include <shared_mutex>
 #include <stdexcept>
 #include <system_error>
 
@@ -272,6 +273,7 @@ namespace YukiWorkshop::GPIO {
 		std::string path_;
 		std::string name_, label_;
 		uint32_t num_lines_ = 0;
+		std::shared_mutex event_lock;
 
 		std::map<uint32_t, std::string> lines_by_num_;
 		std::map<std::string, uint32_t> lines_by_name_;
@@ -334,9 +336,17 @@ namespace YukiWorkshop::GPIO {
 		LineSingle line(uint32_t __line_number, LineMode __mode, uint8_t __default_value = 0, const std::string& __label = "");
 		LineMultiple line(const std::initializer_list<LineSpec>& __lss, LineMode __mode, const std::string& __label = "");
 
-		int on_event(uint32_t __line_number, LineMode __line_mode, EventMode __event_mode,
-			     const std::function<void(EventType, uint64_t)>& __handler, const std::string& __label = "");
-		void cancel_event(int __event_handle);
+		int add_event(uint32_t __line_number, LineMode __line_mode, EventMode __event_mode,
+			      const std::function<void(EventType, uint64_t)>& __handler, const std::string& __label = "");
+
+		void remove_event(int __event_handle);
+
+		void process_event(int __event_handle);
+
+		std::vector<int> event_fds();
+
+		bool is_event_fd(int __fd);
+
 		void run_eventlistener();
 		void stop_eventlistener();
 	};

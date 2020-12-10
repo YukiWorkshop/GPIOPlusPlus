@@ -59,11 +59,11 @@ int main() {
 		std::cout << "Device: name: " << d.name() << " label: " << d.label() << " lines: " << d.num_lines()
 			  << "\n";
 
-		d.on_event(21, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
-			   [](GPIO::EventType evtype, uint64_t evtime){
-				   if (evtype == GPIO::EventType::RisingEdge)
-					   std::cout << "Hey man, somebody is in front of your door at " << evtime << "\n";
-			   }
+		d.add_event(21, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
+			    [](GPIO::EventType evtype, uint64_t evtime) {
+				    if (evtype == GPIO::EventType::RisingEdge)
+					    std::cout << "Hey man, somebody is in front of your door at " << evtime << "\n";
+			    }
 		);
 
 		std::thread t([&](){
@@ -78,6 +78,7 @@ int main() {
 	} catch (...) {
 
 	}
+
 
 	return 0;
 }

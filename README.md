@@ -5,15 +5,15 @@ Easy-to-use C++ library for the new Linux GPIO API.
 
 ## Features
 -  OOP design
--  Elegant event handling
--  Finds your desired pin by name
--  Not limited to a specific device
+-  Elegant event handling: automatic or manual
+-  Finds your desired pin by name (need DT/ACPI support)
+-  Not limited to a specific hardware platform
+-  Thread safe
 -  **Doesn't look like Arduino APIs** :P
 
 ## Requirements
--  Linux kernel 4.8+ with new GPIO API & epoll
--  pthread
--  **To make pullup/pulldown actually working, you need Linux kernel 5.4+**
+-  Linux kernel 4.8+ with new GPIO API (`/dev/gpiochipX`) & epoll
+-  **Linux kernel 5.4+ to make pullup/pulldown actually working**
 
 And reasonably new versions of:
 -  C++17 compatible compiler
@@ -28,7 +28,7 @@ include(cmake/CPM.cmake)
 CPMAddPackage(
         NAME GPIOPlusPlus
         GITHUB_REPOSITORY YukiWorkshop/GPIOPlusPlus
-        VERSION 0.0.3
+        VERSION 0.0.4
 )
 
 target_include_directories(your_project PUBLIC ${GPIOPlusPlus_SOURCE_DIR})
@@ -89,14 +89,22 @@ Get a line by its name (won't work if it doesn't have one in device tree):
 auto line0 = d.line(d.lines_by_name["SDA1"], GPIO::LineMode::Input);
 ```
 
-Events handling:
+Add events:
 ```cpp
-d.on_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
-       [](GPIO::EventType evtype, uint64_t evtime){
-           std::cout << "Hey man, your pin is HIGH at " << evtime << "\n";
-       }
+int handle = d.add_event(2, GPIO::LineMode::Input, GPIO::EventMode::RisingEdge,
+               [](GPIO::EventType evtype, uint64_t evtime){
+                   std::cout << "Hey man, your pin is HIGH at " << evtime << "\n";
+               }
 );
+```
 
+And remove them:
+```cpp
+d.remove_event(handle);
+```
+
+Automatic events handling:
+```cpp
 std::thread t([&](){
     d.run_eventlistener();
 });
@@ -108,10 +116,33 @@ d.stop_eventlistener();
 t.join();
 ```
 
-No more `digitalWrite`s!! Hurray!!!
+Manual events handling:
+```cpp
+int epfd = epoll_create(42);
 
-## Documentation
-TBD
+epoll_event ev;
+
+for (auto &it : d.event_fds()) {
+    ev.events = EPOLLIN;
+    ev.data.fd = it;
+
+    epoll_ctl(epfd, EPOLL_CTL_ADD, it, &ev);
+}
+
+int ep_rc;
+epoll_event evs[16];
+
+while ((ep_rc = epoll_wait(epfd, evs, 16, 1000)) != -1) {
+    if (ep_rc > 0) {
+        for (uint i=0; i<ep_rc; i++)
+            d.process_event(evs[i].data.fd);
+    }
+
+    // ...
+}
+```
+
+No more `digitalWrite`s!! Hurray!!!!!!
 
 ## License
 LGPLv3
