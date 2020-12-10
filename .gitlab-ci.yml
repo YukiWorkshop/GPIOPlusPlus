@@ -4,7 +4,7 @@ stages:
   - build
 
 before_script:
-  - DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -yq install git build-essential cmake lcov
+  - DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -yq install git build-essential cmake lcov
 
 build:
   stage: build
