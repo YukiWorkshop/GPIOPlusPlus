@@ -42,6 +42,18 @@
 
 #include "Utils.hpp"
 
+#ifndef GPIOHANDLE_REQUEST_BIAS_DISABLE
+#define GPIOHANDLE_REQUEST_BIAS_DISABLE 0
+#endif
+
+#ifndef GPIOHANDLE_REQUEST_BIAS_PULL_UP
+#define GPIOHANDLE_REQUEST_BIAS_PULL_UP 0
+#endif
+
+#ifndef GPIOHANDLE_REQUEST_BIAS_PULL_DOWN
+#define GPIOHANDLE_REQUEST_BIAS_PULL_DOWN 0
+#endif
+
 namespace YukiWorkshop::GPIO {
 	class Device;
 	class Line;
@@ -52,15 +64,9 @@ namespace YukiWorkshop::GPIO {
 		ActiveLow = GPIOHANDLE_REQUEST_ACTIVE_LOW,
 		OpenDrain = GPIOHANDLE_REQUEST_OPEN_DRAIN,
 		OpenSource = GPIOHANDLE_REQUEST_OPEN_SOURCE,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0)
 		NoPull = GPIOHANDLE_REQUEST_BIAS_DISABLE,
 		PullUp = GPIOHANDLE_REQUEST_BIAS_PULL_UP,
 		PullDown = GPIOHANDLE_REQUEST_BIAS_PULL_DOWN,
-#else
-		NoPull = 0,
-		PullUp = 0,
-		PullDown = 0,
-#endif
 	};
 
 	enum class EventMode : int {
